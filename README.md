@@ -1,36 +1,47 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# BENO Aqua Matic — Boutique en ligne
 
-## Getting Started
+Boutique e-commerce Next.js + Prisma pour la lessive liquide **BENO Aqua Matic** (Bleu Océanic & Lavande).
 
-First, run the development server:
+## Fonctionnalités
+
+- Catalogue BENO Aqua Matic (2 parfums, format 5L)
+- Panier client (localStorage)
+- Commande avec paiement à la livraison (COD)
+- Charte graphique bleu / violet adaptée à la marque
+- Base de données SQLite via Prisma
+
+## Démarrage
 
 ```bash
+npm run db:setup
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Ouvrir [http://localhost:3000](http://localhost:3000)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Commande | Description |
+|----------|-------------|
+| `npm run dev` | Serveur de développement |
+| `npm run db:setup` | Crée la BDD et insère les produits BENO |
+| `npm run db:seed` | Réinitialise les produits |
+| `npm run build` | Build production |
 
-## Learn More
+## Panel Admin
 
-To learn more about Next.js, take a look at the following resources:
+Accès : [http://localhost:3000/admin/login](http://localhost:3000/admin/login)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Variable | Description | Défaut |
+|----------|-------------|--------|
+| `ADMIN_PASSWORD` | Mot de passe de connexion | `admin123` |
+| `ADMIN_SECRET` | Token de session (cookie) | à changer en production |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Fonctionnalités :
+- Gestion des commandes (statuts)
+- Ajouter / modifier / supprimer des produits
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Les images sont dans `public/products/` :
+- `bleu-oceanic-bottle.png` — BENO Bleu Océanic 5L
+- `lavande-bottle.png` — BENO Lavande 5L
+- `duo-poster.png` — Affiche hero (les deux variantes)
