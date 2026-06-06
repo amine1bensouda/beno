@@ -23,7 +23,7 @@ export function ProductsTable({ products }: { products: Product[] }) {
     if (!confirm(`Supprimer « ${name} » ?`)) return;
 
     const result = await deleteProduct(id);
-    alert(result.message || (result.success ? "Supprimé." : result.error));
+    alert(result.message ?? "Supprimé.");
     router.refresh();
   }
 
