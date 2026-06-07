@@ -1,47 +1,61 @@
 # BENO Aqua Matic — Boutique en ligne
 
-Boutique e-commerce Next.js + Prisma pour la lessive liquide **BENO Aqua Matic** (Bleu Océanic & Lavande).
+Boutique e-commerce Next.js + Prisma + **Supabase (PostgreSQL)**.
 
-## Fonctionnalités
+## Base de données Supabase
 
-- Catalogue BENO Aqua Matic (2 parfums, format 5L)
-- Panier client (localStorage)
-- Commande avec paiement à la livraison (COD)
-- Charte graphique bleu / violet adaptée à la marque
-- Base de données SQLite via Prisma
+Projet : [beno sur Supabase](https://supabase.com/dashboard/project/aofzqdwrgpvpgkqafmpt)
 
-## Démarrage
+### 1. Récupérer les URLs de connexion
+
+Dans Supabase → **Connect** → **ORMs** → **Prisma** :
+
+- `DATABASE_URL` → mode **Transaction** (pooler, port 6543)
+- `DIRECT_URL` → mode **Session** (port 5432)
+
+### 2. Configurer `.env` (local)
 
 ```bash
+cp .env.example .env
+```
+
+Remplacez `[YOUR-PASSWORD]` par le mot de passe de la base Supabase.
+
+### 3. Créer les tables et insérer les produits
+
+```bash
+npm run db:setup
+```
+
+### 4. Vercel — variables d'environnement
+
+| Variable | Description |
+|----------|-------------|
+| `DATABASE_URL` | URL poolée Supabase (port 6543) |
+| `DIRECT_URL` | URL directe Supabase (port 5432) |
+| `ADMIN_PASSWORD` | Mot de passe admin |
+| `ADMIN_SECRET` | Clé secrète session admin |
+
+## Démarrage local
+
+```bash
+npm install
 npm run db:setup
 npm run dev
 ```
 
-Ouvrir [http://localhost:3000](http://localhost:3000)
+[http://localhost:3000](http://localhost:3000)
 
 ## Scripts
 
 | Commande | Description |
 |----------|-------------|
 | `npm run dev` | Serveur de développement |
-| `npm run db:setup` | Crée la BDD et insère les produits BENO |
+| `npm run db:setup` | Migrations + seed produits |
 | `npm run db:seed` | Réinitialise les produits |
-| `npm run build` | Build production |
+| `npm run db:migrate` | Applique les migrations |
+| `npm run build` | Build production (inclut migrate deploy) |
 
 ## Panel Admin
 
-Accès : [http://localhost:3000/admin/login](http://localhost:3000/admin/login)
-
-| Variable | Description | Défaut |
-|----------|-------------|--------|
-| `ADMIN_PASSWORD` | Mot de passe de connexion | `admin123` |
-| `ADMIN_SECRET` | Token de session (cookie) | à changer en production |
-
-Fonctionnalités :
-- Gestion des commandes (statuts)
-- Ajouter / modifier / supprimer des produits
-
-Les images sont dans `public/products/` :
-- `bleu-oceanic-bottle.png` — BENO Bleu Océanic 5L
-- `lavande-bottle.png` — BENO Lavande 5L
-- `duo-poster.png` — Affiche hero (les deux variantes)
+[http://localhost:3000/admin/login](http://localhost:3000/admin/login) — mot de passe par défaut : `admin123`
