@@ -36,6 +36,8 @@ npm run db:setup
 | `ADMIN_PASSWORD` | Mot de passe admin |
 | `ADMIN_SECRET` | Clé secrète session admin |
 
+Puis **Deployments → Redeploy** sur la branche `main` (commit le plus récent).
+
 ## Démarrage local
 
 ```bash
