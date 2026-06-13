@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { deleteProduct } from "@/actions/admin";
+import { DeleteProductButton } from "@/components/admin/DeleteProductButton";
 
 type Product = {
   id: string;
@@ -17,16 +16,6 @@ type Product = {
 };
 
 export function ProductsTable({ products }: { products: Product[] }) {
-  const router = useRouter();
-
-  async function handleDelete(id: string, name: string) {
-    if (!confirm(`Supprimer « ${name} » ?`)) return;
-
-    const result = await deleteProduct(id);
-    alert(result.message ?? "Supprimé.");
-    router.refresh();
-  }
-
   if (products.length === 0) {
     return (
       <div className="rounded-xl border border-slate-200 bg-white p-8 text-center text-slate-500">
@@ -95,13 +84,7 @@ export function ProductsTable({ products }: { products: Product[] }) {
                     >
                       Modifier
                     </Link>
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(product.id, product.name)}
-                      className="rounded-lg bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-100"
-                    >
-                      Supprimer
-                    </button>
+                    <DeleteProductButton id={product.id} name={product.name} />
                   </div>
                 </td>
               </tr>

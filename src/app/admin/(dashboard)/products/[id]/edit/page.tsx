@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getAdminCategories, getAdminProduct } from "@/actions/admin";
+import { getAdminCategories, getAdminProduct, getProductImages } from "@/actions/admin";
 import { ProductForm } from "@/components/admin/ProductForm";
 
 export const dynamic = "force-dynamic";
@@ -10,9 +10,10 @@ type EditProductPageProps = {
 
 export default async function EditProductPage({ params }: EditProductPageProps) {
   const { id } = await params;
-  const [product, categories] = await Promise.all([
+  const [product, categories, availableImages] = await Promise.all([
     getAdminProduct(id),
     getAdminCategories(),
+    getProductImages(),
   ]);
 
   if (!product) notFound();
@@ -20,7 +21,7 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
   return (
     <div>
       <h1 className="mb-6 text-2xl font-black text-slate-900">Modifier le produit</h1>
-      <ProductForm categories={categories} product={product} />
+      <ProductForm categories={categories} availableImages={availableImages} product={product} />
     </div>
   );
 }

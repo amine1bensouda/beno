@@ -4,11 +4,14 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createProduct, updateProduct, type ProductInput } from "@/actions/admin";
+import { DeleteProductButton } from "@/components/admin/DeleteProductButton";
+import { ProductImageField } from "@/components/admin/ProductImageField";
 
 type Category = { id: string; name: string; slug: string };
 
 type ProductFormProps = {
   categories: Category[];
+  availableImages: string[];
   product?: {
     id: string;
     name: string;
@@ -25,7 +28,7 @@ type ProductFormProps = {
   };
 };
 
-export function ProductForm({ categories, product }: ProductFormProps) {
+export function ProductForm({ categories, availableImages, product }: ProductFormProps) {
   const router = useRouter();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -100,16 +103,7 @@ export function ProductForm({ categories, product }: ProductFormProps) {
         />
       </div>
 
-      <Field
-        label="Image (chemin) *"
-        name="image"
-        defaultValue={product?.image}
-        placeholder="/products/mon-produit.png"
-        required
-      />
-      <p className="-mt-3 text-xs text-slate-400">
-        Placez le fichier dans le dossier <code>public/products/</code>
-      </p>
+      <ProductImageField defaultValue={product?.image ?? ""} availableImages={availableImages} />
 
       <label className="block">
         <span className="mb-1 block text-sm font-semibold text-slate-700">Catégorie *</span>
@@ -172,7 +166,7 @@ export function ProductForm({ categories, product }: ProductFormProps) {
 
       {error && <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
 
-      <div className="flex gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <button
           type="submit"
           disabled={loading}
@@ -186,6 +180,14 @@ export function ProductForm({ categories, product }: ProductFormProps) {
         >
           Annuler
         </Link>
+        {isEdit && product && (
+          <DeleteProductButton
+            id={product.id}
+            name={product.name}
+            redirectTo="/admin/products"
+            variant="form"
+          />
+        )}
       </div>
     </form>
   );

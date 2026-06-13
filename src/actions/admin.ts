@@ -8,9 +8,41 @@ import {
   requireAdmin,
   slugify,
 } from "@/lib/admin-auth";
+import { STATIC_PRODUCT_IMAGES } from "@/lib/product-images";
+import { getSupabaseAdmin, isSupabaseStorageConfigured } from "@/lib/supabase-admin";
+import { mkdir, writeFile } from "fs/promises";
+import path from "path";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+const ALLOWED_IMAGE_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+]);
+const PRODUCTS_BUCKET = "products";
+
+type UploadedFile = Blob & { name?: string; type: string; size: number };
+
+function getUploadedFile(formData: FormData, fieldName: string): UploadedFile | null {
+  const entry = formData.get(fieldName);
+  if (
+    !entry ||
+    typeof entry !== "object" ||
+    !("arrayBuffer" in entry) ||
+    typeof entry.arrayBuffer !== "function" ||
+    !("size" in entry) ||
+    typeof entry.size !== "number" ||
+    entry.size === 0
+  ) {
+    return null;
+  }
+
+  return entry as UploadedFile;
+}
 
 export type ProductInput = {
   name: string;
@@ -51,11 +83,13 @@ export async function logoutAdmin() {
 export async function getAdminStats() {
   await requireAdmin();
 
+  const activeOrders = { status: { not: "cancelled" } };
+
   const [ordersCount, pendingCount, productsCount, revenue] = await Promise.all([
-    prisma.order.count(),
+    prisma.order.count({ where: activeOrders }),
     prisma.order.count({ where: { status: "pending" } }),
     prisma.product.count(),
-    prisma.order.aggregate({ _sum: { total: true } }),
+    prisma.order.aggregate({ where: activeOrders, _sum: { total: true } }),
   ]);
 
   return {
@@ -120,6 +154,72 @@ export async function getAdminCategories() {
   await requireAdmin();
 
   return prisma.category.findMany({ orderBy: { name: "asc" } });
+}
+
+export async function getProductImages() {
+  await requireAdmin();
+
+  const dbImages = await prisma.product.findMany({
+    select: { image: true },
+    distinct: ["image"],
+  });
+
+  return [...new Set([...STATIC_PRODUCT_IMAGES, ...dbImages.map((p) => p.image)])];
+}
+
+export async function uploadProductImage(formData: FormData) {
+  await requireAdmin();
+
+  const file = getUploadedFile(formData, "file");
+  if (!file) {
+    return { success: false as const, error: "Aucun fichier sélectionné." };
+  }
+
+  const mimeType = file.type || "application/octet-stream";
+  if (!ALLOWED_IMAGE_TYPES.has(mimeType)) {
+    return { success: false as const, error: "Format non supporté (JPG, PNG, WebP, GIF)." };
+  }
+
+  if (file.size > MAX_IMAGE_SIZE) {
+    return { success: false as const, error: "Fichier trop volumineux (max. 5 Mo)." };
+  }
+
+  const originalName = typeof file.name === "string" ? file.name : "upload.jpg";
+  const ext = originalName.split(".").pop()?.toLowerCase() || "jpg";
+  const safeExt = ["jpg", "jpeg", "png", "webp", "gif"].includes(ext) ? ext : "jpg";
+  const fileName = `product-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${safeExt}`;
+  const buffer = Buffer.from(await file.arrayBuffer());
+
+  if (isSupabaseStorageConfigured()) {
+    const supabase = getSupabaseAdmin()!;
+    const { error } = await supabase.storage
+      .from(PRODUCTS_BUCKET)
+      .upload(fileName, buffer, { contentType: mimeType, upsert: false });
+
+    if (error) {
+      return {
+        success: false as const,
+        error: `Upload Supabase échoué : ${error.message}. Vérifiez le bucket « ${PRODUCTS_BUCKET} » (public).`,
+      };
+    }
+
+    const { data } = supabase.storage.from(PRODUCTS_BUCKET).getPublicUrl(fileName);
+    return { success: true as const, url: data.publicUrl };
+  }
+
+  if (process.env.VERCEL) {
+    return {
+      success: false as const,
+      error:
+        "Upload impossible sur Vercel sans Supabase Storage. Ajoutez NEXT_PUBLIC_SUPABASE_URL et SUPABASE_SERVICE_ROLE_KEY.",
+    };
+  }
+
+  const uploadsDir = path.join(process.cwd(), "public", "products");
+  await mkdir(uploadsDir, { recursive: true });
+  await writeFile(path.join(uploadsDir, fileName), buffer);
+
+  return { success: true as const, url: `/products/${fileName}` };
 }
 
 export async function createProduct(data: ProductInput) {
@@ -195,24 +295,28 @@ export async function updateProduct(id: string, data: ProductInput) {
 export async function deleteProduct(id: string) {
   await requireAdmin();
 
-  const orderItems = await prisma.orderItem.count({ where: { productId: id } });
+  try {
+    const orderItems = await prisma.orderItem.count({ where: { productId: id } });
 
-  if (orderItems > 0) {
-    await prisma.product.update({
-      where: { id },
-      data: { inStock: false, featured: false },
-    });
+    if (orderItems > 0) {
+      await prisma.product.update({
+        where: { id },
+        data: { inStock: false, featured: false },
+      });
+      revalidatePath("/");
+      revalidatePath("/admin/products");
+      return {
+        success: true as const,
+        message: "Produit désactivé (présent dans des commandes passées).",
+      };
+    }
+
+    await prisma.product.delete({ where: { id } });
     revalidatePath("/");
     revalidatePath("/admin/products");
-    return {
-      success: true,
-      message: "Produit désactivé (présent dans des commandes passées).",
-    };
+
+    return { success: true as const, message: "Produit supprimé." };
+  } catch {
+    return { success: false as const, error: "Impossible de supprimer ce produit." };
   }
-
-  await prisma.product.delete({ where: { id } });
-  revalidatePath("/");
-  revalidatePath("/admin/products");
-
-  return { success: true, message: "Produit supprimé." };
 }
